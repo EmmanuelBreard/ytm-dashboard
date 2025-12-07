@@ -557,7 +557,7 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
             margin: {{
                 l: 60,
                 r: 40,
-                t: 80,
+                t: 100,  // Increased for percentage labels above dots
                 b: 60
             }}
         }};
