@@ -10,7 +10,8 @@ ytm_dashboard/data/*.db
 # PDF reports (large files)
 ytm_dashboard/reports/*.pdf
 
-# Local dashboard (will be in separate gh-pages branch)
+# Generated dashboards (local only, deployed via gh-pages)
+ytm_dashboard/*.html
 ytm_dashboard/dashboard.html
 
 # IDE

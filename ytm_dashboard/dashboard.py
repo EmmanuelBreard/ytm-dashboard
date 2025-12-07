@@ -4,6 +4,7 @@ YTM Dashboard Generator
 Generates static HTML visualization of yield-to-maturity data
 """
 
+import argparse
 import json
 import sys
 import os
@@ -25,19 +26,32 @@ PROVIDER_COLORS = {
 OUTPUT_PATH = 'dashboard.html'
 
 
-def get_ytm_data() -> List[Dict]:
-    """Query database for latest YTM records"""
+def get_ytm_data(report_date: str = None) -> List[Dict]:
+    """Query database for YTM records
+
+    Args:
+        report_date: Optional specific date (YYYY-MM-01).
+                    If None, gets latest records.
+
+    Returns:
+        List of fund records
+    """
     try:
         # Use absolute path
         db_path = os.path.join(os.path.dirname(__file__), 'data', 'ytm_data.db')
         db = DatabaseManager(db_path)
-        records = db.get_latest_records()
+
+        if report_date:
+            records = db.get_records_by_date(report_date)
+            print(f"✅ Loaded {len(records)} records for {report_date}")
+        else:
+            records = db.get_latest_records()
+            print(f"✅ Loaded {len(records)} latest records")
 
         if not records:
             print("⚠️  Warning: No data found in database")
             return []
 
-        print(f"✅ Loaded {len(records)} fund records")
         return records
 
     except Exception as e:
@@ -69,6 +83,74 @@ def format_date(date_str: str) -> str:
         return date_str
 
 
+def get_output_filename(report_date: str = None) -> str:
+    """Generate filename based on report date
+
+    Args:
+        report_date: Date in YYYY-MM-01 format
+
+    Returns:
+        Filename like 'october_2025.html' or 'index.html'
+    """
+    if report_date:
+        # Convert '2025-10-01' to 'october_2025.html'
+        dt = datetime.strptime(report_date, '%Y-%m-%d')
+        return dt.strftime('%B_%Y').lower() + '.html'
+    else:
+        return 'index.html'  # Latest month as index
+
+
+def get_all_report_dates() -> List[str]:
+    """Get all unique report dates from database"""
+    try:
+        db_path = os.path.join(os.path.dirname(__file__), 'data', 'ytm_data.db')
+        db = DatabaseManager(db_path)
+
+        conn = db._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT report_date FROM fund_ytm_data ORDER BY report_date")
+        dates = [row[0] for row in cursor.fetchall()]
+        conn.close()
+
+        return dates
+    except Exception as e:
+        print(f"❌ Error querying dates: {e}")
+        return []
+
+
+def generate_historical_nav(all_dates: List[str], current_date: str = None) -> str:
+    """Generate historical month navigation links
+
+    Args:
+        all_dates: List of all report dates
+        current_date: Currently displayed date (to highlight)
+
+    Returns:
+        HTML navigation component
+    """
+    if len(all_dates) <= 1:
+        return ""  # Don't show nav if only one month
+
+    links = []
+    for date in sorted(all_dates, reverse=True):
+        dt = datetime.strptime(date, '%Y-%m-%d')
+        month_name = dt.strftime('%B %Y')
+        filename = dt.strftime('%B_%Y').lower() + '.html'
+
+        # Highlight current month
+        css_class = 'month-link active' if date == current_date else 'month-link'
+        links.append(f'<a href="{filename}" class="{css_class}">{month_name}</a>')
+
+    return f"""
+    <div class="historical-nav">
+        <h3>📅 Historical Dashboards</h3>
+        <div class="month-links">
+            {' '.join(links)}
+        </div>
+    </div>
+    """
+
+
 def generate_table_html(records: List[Dict]) -> str:
     """Generate HTML table rows with provider color badges"""
     if not records:
@@ -98,8 +180,16 @@ def generate_table_html(records: List[Dict]) -> str:
     return '\n'.join(rows)
 
 
-def generate_dashboard_html(records: List[Dict]) -> str:
-    """Generate complete HTML document with embedded data and charts"""
+def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str:
+    """Generate complete HTML document with embedded data and charts
+
+    Args:
+        records: List of fund records
+        report_date: Report date for this dashboard (YYYY-MM-01)
+
+    Returns:
+        Complete HTML document string
+    """
 
     # Transform data for chart
     chart_data = transform_for_chart(records)
@@ -107,6 +197,17 @@ def generate_dashboard_html(records: List[Dict]) -> str:
 
     # Generate table
     table_rows = generate_table_html(records)
+
+    # Get all dates for navigation
+    all_dates = get_all_report_dates()
+    historical_nav = generate_historical_nav(all_dates, report_date)
+
+    # Determine title based on report date
+    if report_date:
+        dt = datetime.strptime(report_date, '%Y-%m-%d')
+        title_suffix = f" - {dt.strftime('%B %Y')}"
+    else:
+        title_suffix = " - Latest"
 
     # Metadata
     last_updated = datetime.now().strftime('%B %d, %Y at %I:%M %p')
@@ -117,7 +218,7 @@ def generate_dashboard_html(records: List[Dict]) -> str:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YTM Dashboard</title>
+    <title>YTM Dashboard{title_suffix}</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <style>
         * {{
@@ -269,6 +370,49 @@ def generate_dashboard_html(records: List[Dict]) -> str:
             font-size: 0.9em;
         }}
 
+        .historical-nav {{
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }}
+
+        .historical-nav h3 {{
+            margin-bottom: 15px;
+            color: #2c3e50;
+            font-size: 1.2em;
+        }}
+
+        .month-links {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }}
+
+        .month-link {{
+            padding: 8px 16px;
+            background: white;
+            border: 2px solid #4ECDC4;
+            border-radius: 6px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }}
+
+        .month-link:hover {{
+            background: #4ECDC4;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }}
+
+        .month-link.active {{
+            background: #4ECDC4;
+            color: white;
+            font-weight: 700;
+        }}
+
         @media (max-width: 768px) {{
             .container {{
                 padding: 20px;
@@ -325,6 +469,8 @@ def generate_dashboard_html(records: List[Dict]) -> str:
                 </tbody>
             </table>
         </div>
+
+        {historical_nav}
 
         <footer>
             <p>Data source: Internal YTM Database</p>
@@ -433,40 +579,98 @@ def generate_dashboard_html(records: List[Dict]) -> str:
 
 def main():
     """Main entry point"""
+    parser = argparse.ArgumentParser(description='Generate YTM dashboard')
+    parser.add_argument('--date', help='Report date (YYYY-MM-01) for specific month')
+    parser.add_argument('--all', action='store_true', help='Generate dashboards for all months')
+    args = parser.parse_args()
+
     print("\n" + "=" * 60)
     print("YTM DASHBOARD GENERATOR")
     print("=" * 60 + "\n")
 
-    # Query database
-    print("📊 Querying database...")
-    records = get_ytm_data()
+    if args.all:
+        # Generate dashboard for each month in database
+        all_dates = get_all_report_dates()
 
-    if not records:
-        print("❌ No data to display. Run main.py first to collect data.")
-        sys.exit(1)
+        if not all_dates:
+            print("❌ No data in database")
+            sys.exit(1)
 
-    # Generate HTML
-    print("🎨 Generating dashboard...")
-    html_content = generate_dashboard_html(records)
+        print(f"📊 Generating dashboards for {len(all_dates)} months...\n")
 
-    # Write to file
-    output_path = os.path.join(os.path.dirname(__file__), OUTPUT_PATH)
+        for date in all_dates:
+            print(f"📅 {date}...")
+            records = get_ytm_data(report_date=date)
 
-    try:
+            if not records:
+                print(f"  ⚠️  No data for {date}, skipping")
+                continue
+
+            html_content = generate_dashboard_html(records, report_date=date)
+            filename = get_output_filename(date)
+            output_path = os.path.join(os.path.dirname(__file__), filename)
+
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(html_content)
+
+            file_size = os.path.getsize(output_path)
+            print(f"  ✅ {filename} ({file_size:,} bytes)")
+
+        # Also generate index.html with latest data
+        print(f"\n📅 Latest (index.html)...")
+        latest_records = get_ytm_data()
+        latest_html = generate_dashboard_html(latest_records)
+        index_path = os.path.join(os.path.dirname(__file__), 'index.html')
+
+        with open(index_path, 'w', encoding='utf-8') as f:
+            f.write(latest_html)
+
+        print(f"  ✅ index.html")
+        print("\n" + "=" * 60)
+        print(f"✅ Generated {len(all_dates) + 1} dashboard files")
+        print("=" * 60 + "\n")
+
+    elif args.date:
+        # Generate dashboard for specific month
+        print(f"📊 Generating dashboard for {args.date}...\n")
+        records = get_ytm_data(report_date=args.date)
+
+        if not records:
+            print(f"❌ No data for {args.date}")
+            sys.exit(1)
+
+        html_content = generate_dashboard_html(records, report_date=args.date)
+        filename = get_output_filename(args.date)
+        output_path = os.path.join(os.path.dirname(__file__), filename)
+
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
         file_size = os.path.getsize(output_path)
-        print(f"✅ Dashboard generated successfully!")
+        print(f"✅ Dashboard generated: {filename} ({file_size:,} bytes)")
+        print("=" * 60 + "\n")
+
+    else:
+        # Generate latest dashboard (default behavior)
+        print("📊 Generating latest dashboard...\n")
+        records = get_ytm_data()
+
+        if not records:
+            print("❌ No data in database")
+            sys.exit(1)
+
+        html_content = generate_dashboard_html(records)
+        output_path = os.path.join(os.path.dirname(__file__), OUTPUT_PATH)
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        file_size = os.path.getsize(output_path)
+        print(f"✅ Dashboard generated: {OUTPUT_PATH} ({file_size:,} bytes)")
         print(f"📄 File: {output_path}")
-        print(f"💾 Size: {file_size:,} bytes")
         print(f"\n🌐 Open in browser:")
         print(f"   open {output_path}")
         print("=" * 60 + "\n")
-
-    except IOError as e:
-        print(f"❌ Error writing file: {e}")
-        sys.exit(1)
 
 
 if __name__ == "__main__":
