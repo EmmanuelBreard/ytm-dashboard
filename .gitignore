@@ -1,0 +1,24 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Database (don't commit - regenerate locally)
+ytm_dashboard/data/*.db
+
+# PDF reports (large files)
+ytm_dashboard/reports/*.pdf
+
+# Local dashboard (will be in separate gh-pages branch)
+ytm_dashboard/dashboard.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
