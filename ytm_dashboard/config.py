@@ -18,7 +18,7 @@ FUND_CONFIG = {
         "fund_name": "Carmignac Crédit 2029",
         "isin_code": "FR001400KAV4",
         "maturity": 2029,
-        "url": "https://www.carmignac.com/en/our-funds/carmignac-credit-2029-FR001400KAV4-a-eur-acc/documents",
+        "url": "https://www.carmignac.com/fr-fr/nos-fonds-notre-gestion/carmignac-credit-2029-FR001400KAV4-a-eur-acc",
         "source_type": "web"
     },
     "carmignac_2031": {
