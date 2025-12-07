@@ -449,6 +449,8 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
             </div>
         </header>
 
+        {historical_nav}
+
         <div id="scatter-plot"></div>
 
         <div class="data-table">
@@ -469,8 +471,6 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
                 </tbody>
             </table>
         </div>
-
-        {historical_nav}
 
         <footer>
             <p>Data source: Internal YTM Database</p>

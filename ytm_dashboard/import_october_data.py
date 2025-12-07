@@ -17,6 +17,8 @@ OCTOBER_DATA = {
     'carmignac_2031': 5.10,
     'sycomore_2030': 4.90,
     'sycomore_2032': 4.90,
+    'rothschild_2028': 2.85,  # R-co Target 2028 IG
+    'rothschild_2029': 3.06,  # R-co Target 2029 IG
 }
 
 REPORT_DATE = '2025-10-01'
