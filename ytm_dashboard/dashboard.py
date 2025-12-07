@@ -132,7 +132,7 @@ def generate_historical_nav(all_dates: List[str], current_date: str = None) -> s
         return ""  # Don't show nav if only one month
 
     links = []
-    for date in sorted(all_dates, reverse=True):
+    for date in sorted(all_dates):  # Chronological order (oldest to newest)
         dt = datetime.strptime(date, '%Y-%m-%d')
         month_name = dt.strftime('%B %Y')
         filename = dt.strftime('%B_%Y').lower() + '.html'
@@ -486,9 +486,15 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
         const chartData = [{{
             x: fundData.x,
             y: fundData.y,
-            text: fundData.text,
-            mode: 'markers',
+            text: fundData.y.map(val => val.toFixed(2) + '%'),  // Format as percentage
+            mode: 'markers+text',  // Add text labels
             type: 'scatter',
+            textposition: 'top center',  // Position above dots
+            textfont: {{
+                size: 11,
+                color: '#333',
+                family: 'inherit'
+            }},
             marker: {{
                 size: 16,
                 color: fundData.colors,
@@ -538,7 +544,8 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
                 gridcolor: '#e0e0e0',
                 gridwidth: 1,
                 zeroline: false,
-                tickfont: {{ size: 12 }}
+                tickfont: {{ size: 12 }},
+                range: [0, null]  // Start from 0, auto-scale max
             }},
             hovermode: 'closest',
             plot_bgcolor: '#fafafa',
