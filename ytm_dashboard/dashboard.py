@@ -545,7 +545,7 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
                 gridwidth: 1,
                 zeroline: false,
                 tickfont: {{ size: 12 }},
-                range: [0, null]  // Start from 0, auto-scale max
+                range: [0, Math.max(...fundData.y) + 1]  // Max value + 1%
             }},
             hovermode: 'closest',
             plot_bgcolor: '#fafafa',
