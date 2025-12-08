@@ -56,7 +56,7 @@ def get_ytm_data(report_date: str = None) -> List[Dict]:
 
     except Exception as e:
         print(f"❌ Error querying database: {e}")
-        sys.exit(1)
+        return []
 
 
 def transform_for_chart(records: List[Dict]) -> Dict:
@@ -116,6 +116,118 @@ def get_all_report_dates() -> List[str]:
     except Exception as e:
         print(f"❌ Error querying dates: {e}")
         return []
+
+
+def generate_all_dashboards(quiet: bool = False) -> bool:
+    """
+    Generate dashboards for all months in database + latest index.html
+
+    Args:
+        quiet: If True, suppress console output
+
+    Returns:
+        True if successful, False if errors occurred
+    """
+    try:
+        all_dates = get_all_report_dates()
+
+        if not all_dates:
+            if not quiet:
+                print("❌ No data in database")
+            return False
+
+        if not quiet:
+            print(f"\n📊 Generating dashboards for {len(all_dates)} months...")
+
+        success_count = 0
+
+        # Generate dashboard for each historical month
+        for date in all_dates:
+            try:
+                records = get_ytm_data(report_date=date)
+                if not records:
+                    continue
+
+                html_content = generate_dashboard_html(records, report_date=date)
+                filename = get_output_filename(date)
+                output_path = os.path.join(os.path.dirname(__file__), filename)
+
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(html_content)
+
+                if not quiet:
+                    file_size = os.path.getsize(output_path)
+                    print(f"  ✅ {filename} ({file_size:,} bytes)")
+
+                success_count += 1
+
+            except Exception as e:
+                if not quiet:
+                    print(f"  ❌ Error generating {date}: {e}")
+
+        # Generate index.html with latest data
+        try:
+            latest_records = get_ytm_data()
+            latest_html = generate_dashboard_html(latest_records)
+            index_path = os.path.join(os.path.dirname(__file__), 'index.html')
+
+            with open(index_path, 'w', encoding='utf-8') as f:
+                f.write(latest_html)
+
+            if not quiet:
+                print(f"  ✅ index.html (latest)")
+
+            success_count += 1
+
+        except Exception as e:
+            if not quiet:
+                print(f"  ❌ Error generating index.html: {e}")
+
+        if not quiet:
+            print(f"\n✅ Generated {success_count} dashboard files")
+
+        return success_count > 0
+
+    except Exception as e:
+        if not quiet:
+            print(f"❌ Dashboard generation failed: {e}")
+        return False
+
+
+def generate_latest_dashboard(quiet: bool = False) -> bool:
+    """
+    Generate only the latest dashboard (index.html)
+
+    Args:
+        quiet: If True, suppress console output
+
+    Returns:
+        True if successful, False if errors occurred
+    """
+    try:
+        records = get_ytm_data()
+
+        if not records:
+            if not quiet:
+                print("❌ No data in database")
+            return False
+
+        html_content = generate_dashboard_html(records)
+        output_path = os.path.join(os.path.dirname(__file__), 'index.html')
+
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+
+        if not quiet:
+            file_size = os.path.getsize(output_path)
+            print(f"✅ Dashboard generated: index.html ({file_size:,} bytes)")
+
+        return True
+
+    except Exception as e:
+        if not quiet:
+            print(f"❌ Dashboard generation failed: {e}")
+        return False
 
 
 def generate_historical_nav(all_dates: List[str], current_date: str = None) -> str:

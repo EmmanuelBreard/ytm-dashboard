@@ -25,6 +25,7 @@ from extractors.carmignac import CarmignacExtractor
 from extractors.sycomore import SycomoreExtractor
 from extractors.rothschild import RothschildExtractor
 from config import FUND_CONFIG
+from dashboard import generate_all_dashboards, generate_latest_dashboard
 
 
 EXTRACTOR_MAP = {
@@ -34,7 +35,7 @@ EXTRACTOR_MAP = {
 }
 
 
-async def extract_all_funds(report_date: str, fund_filter: str = None, dry_run: bool = False):
+async def extract_all_funds(report_date: str, fund_filter: str = None, dry_run: bool = False) -> tuple:
     """
     Extract YTM data for all configured funds
 
@@ -102,7 +103,7 @@ async def extract_all_funds(report_date: str, fund_filter: str = None, dry_run: 
     # Print summary
     print_summary(results)
 
-    return results
+    return results, report_date
 
 
 def print_summary(results):
@@ -162,6 +163,12 @@ Examples:
         help='List all configured funds and exit'
     )
 
+    parser.add_argument(
+        '--no-dashboard',
+        action='store_true',
+        help='Skip automatic dashboard generation after extraction'
+    )
+
     args = parser.parse_args()
 
     # List funds if requested
@@ -189,11 +196,46 @@ Examples:
 
     # Run extraction
     try:
-        results = asyncio.run(extract_all_funds(
+        results, report_date = asyncio.run(extract_all_funds(
             report_date=report_date,
             fund_filter=args.fund,
             dry_run=args.dry_run
         ))
+
+        # Check if any extractions succeeded
+        success_count = sum(1 for r in results if r.get('success'))
+
+        # Regenerate dashboards if extraction succeeded and not in dry-run mode
+        if success_count > 0 and not args.dry_run and not args.no_dashboard:
+            print("\n" + "="*60)
+            print("REGENERATING HTML DASHBOARDS")
+            print("="*60)
+
+            try:
+                # Determine which dashboards to regenerate
+                if args.fund:
+                    # Single fund: just regenerate latest index.html
+                    dashboard_success = generate_latest_dashboard(quiet=False)
+                else:
+                    # All funds: regenerate all historical dashboards + index
+                    dashboard_success = generate_all_dashboards(quiet=False)
+
+                if dashboard_success:
+                    print("\n🌐 Dashboards updated successfully")
+                else:
+                    print("\n⚠️  Dashboard generation completed with errors")
+
+            except Exception as e:
+                # Dashboard failure shouldn't break extraction success
+                print(f"\n⚠️  Warning: Dashboard generation failed: {e}")
+                print("   (Extraction data was saved successfully)")
+
+        elif args.dry_run:
+            print("\n💡 Tip: Dashboards not regenerated (dry-run mode)")
+        elif args.no_dashboard:
+            print("\n💡 Tip: Dashboards not regenerated (--no-dashboard flag)")
+        elif success_count == 0:
+            print("\n⚠️  No successful extractions, skipping dashboard generation")
 
         # Exit with error code if all extractions failed
         if results and all(not r.get('success') for r in results):
