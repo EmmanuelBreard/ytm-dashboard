@@ -68,7 +68,7 @@ def transform_for_chart(records: List[Dict]) -> Dict:
         'x': [r['fund_maturity'] for r in records],
         'y': [r['yield_to_maturity'] for r in records],
         'text': [r['fund_name'] for r in records],
-        'colors': [PROVIDER_COLORS.get(r['provider'], '#999999') for r in records],
+        'colors': [PROVIDER_COLORS.get(r['provider'].lower(), '#999999') for r in records],
         'providers': [r['provider'] for r in records],
         'isins': [r['isin_code'] for r in records]
     }
@@ -271,7 +271,7 @@ def generate_table_html(records: List[Dict]) -> str:
     rows = []
     for record in records:
         provider = record.get('provider', 'unknown')
-        color = PROVIDER_COLORS.get(provider, '#999999')
+        color = PROVIDER_COLORS.get(provider.lower(), '#999999')
         ytm = record.get('yield_to_maturity', 0.0)
 
         rows.append(f"""
