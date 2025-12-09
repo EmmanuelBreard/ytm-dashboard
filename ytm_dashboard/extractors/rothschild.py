@@ -146,6 +146,10 @@ class RothschildExtractor(BaseExtractor):
         output_dir = os.path.join(base_dir, "reports")
         Path(output_dir).mkdir(parents=True, exist_ok=True)
 
+        # Calculate expected report month (previous month)
+        current_date = datetime.now()
+        expected_month = (current_date.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
+
         try:
             async with async_playwright() as p:
                 browser = await p.chromium.launch(
@@ -187,7 +191,7 @@ class RothschildExtractor(BaseExtractor):
                     return None
 
                 # Save PDF
-                timestamp = datetime.now().strftime('%Y%m')
+                timestamp = expected_month.replace('-', '')  # Use expected_month (e.g., "2025-11" → "202511")
                 safe_fund_name = self.fund_name.lower().replace(' ', '_').replace('-', '_')
                 report_filename = f"{safe_fund_name}_report_{timestamp}.pdf"
                 report_path = os.path.join(output_dir, report_filename)

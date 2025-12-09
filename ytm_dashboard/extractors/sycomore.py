@@ -217,7 +217,7 @@ class SycomoreExtractor(BaseExtractor):
                 current_date = datetime.now()
                 expected_month = (current_date.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
 
-                timestamp = datetime.now().strftime('%Y%m')
+                timestamp = expected_month.replace('-', '')  # Use expected_month (e.g., "2025-11" → "202511")
                 safe_fund_name = self.fund_name.lower().replace(' ', '_')
                 report_filename = f"{safe_fund_name}_report_{timestamp}.pdf"
                 report_path = os.path.join(output_dir, report_filename)
