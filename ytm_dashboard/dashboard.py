@@ -16,11 +16,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from database import DatabaseManager
 
-# Provider color scheme
+# Provider color scheme - muted, sophisticated palette
 PROVIDER_COLORS = {
-    'carmignac': '#FF6B6B',    # Coral red
-    'sycomore': '#4ECDC4',     # Teal
-    'rothschild': '#45B7D1'    # Sky blue
+    'carmignac': '#E07A5F',    # Terracotta
+    'sycomore': '#81B29A',     # Sage green
+    'rothschild': '#5B8BA0'    # Steel blue
 }
 
 OUTPUT_PATH = 'dashboard.html'
@@ -340,76 +340,80 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
         }}
 
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-            padding: 20px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #fafafa;
+            color: #1a1a1a;
+            line-height: 1.7;
+            padding: 40px 20px;
         }}
 
         .container {{
-            max-width: 1200px;
+            max-width: 1100px;
             margin: 0 auto;
             background: white;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border-radius: 16px;
+            padding: 60px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
         }}
 
         header {{
-            border-bottom: 3px solid #4ECDC4;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
+            padding-bottom: 40px;
+            margin-bottom: 40px;
+            border-bottom: 1px solid #eee;
         }}
 
         h1 {{
-            font-size: 2.5em;
-            color: #2c3e50;
-            margin-bottom: 10px;
+            font-size: 1.75em;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            letter-spacing: -0.02em;
         }}
 
         .subtitle {{
-            font-size: 1.2em;
-            color: #7f8c8d;
-            margin-bottom: 15px;
+            font-size: 1em;
+            color: #888;
+            font-weight: 400;
         }}
 
         .metadata {{
             display: flex;
-            gap: 30px;
+            gap: 32px;
             flex-wrap: wrap;
-            margin-top: 15px;
+            margin-top: 24px;
         }}
 
         .metadata-item {{
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #555;
-            font-size: 0.95em;
+            color: #666;
+            font-size: 0.875em;
         }}
 
         .metadata-item strong {{
-            color: #333;
+            color: #1a1a1a;
+            font-weight: 500;
         }}
 
         #scatter-plot {{
-            min-height: 500px;
-            margin: 30px 0;
-            border-radius: 8px;
+            min-height: 480px;
+            margin: 48px 0;
+            border-radius: 12px;
+            border: 1px solid #eee;
             overflow: hidden;
         }}
 
         .data-table {{
-            margin-top: 40px;
+            margin-top: 56px;
         }}
 
         .data-table h2 {{
-            font-size: 1.8em;
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #e0e0e0;
+            font-size: 1.25em;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 24px;
+            letter-spacing: -0.01em;
         }}
 
         table {{
@@ -419,54 +423,66 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
         }}
 
         thead {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: #f8f8f8;
         }}
 
         th {{
-            padding: 15px;
+            padding: 14px 16px;
             text-align: left;
-            font-weight: 600;
-            font-size: 0.95em;
+            font-weight: 500;
+            font-size: 0.75em;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.05em;
+            color: #666;
+            border-bottom: 1px solid #eee;
         }}
 
         td {{
-            padding: 15px;
-            border-bottom: 1px solid #e0e0e0;
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.9em;
         }}
 
-        tr:hover {{
-            background: #f8f9fa;
+        tbody tr {{
+            transition: background 0.15s ease;
+        }}
+
+        tbody tr:hover {{
+            background: #fafafa;
+        }}
+
+        tbody tr:last-child td {{
+            border-bottom: none;
         }}
 
         .fund-name {{
-            font-weight: 600;
-            color: #2c3e50;
+            font-weight: 500;
+            color: #1a1a1a;
         }}
 
         .provider-badge {{
             display: inline-block;
-            padding: 5px 12px;
-            border-radius: 15px;
-            color: white;
-            font-size: 0.85em;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.7em;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.04em;
+            opacity: 0.9;
         }}
 
         .ytm-value {{
-            font-weight: 700;
-            color: #27ae60;
-            font-size: 1.1em;
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 1em;
+            font-variant-numeric: tabular-nums;
         }}
 
         .isin {{
-            font-family: 'Courier New', monospace;
-            color: #555;
-            font-size: 0.9em;
+            font-family: 'SF Mono', 'Menlo', 'Monaco', monospace;
+            color: #888;
+            font-size: 0.8em;
+            letter-spacing: 0.02em;
         }}
 
         .center {{
@@ -474,64 +490,76 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
         }}
 
         footer {{
-            margin-top: 40px;
-            padding-top: 20px;
-            border-top: 2px solid #e0e0e0;
+            margin-top: 56px;
+            padding-top: 24px;
+            border-top: 1px solid #eee;
             text-align: center;
-            color: #7f8c8d;
-            font-size: 0.9em;
+            color: #999;
+            font-size: 0.8em;
+        }}
+
+        footer p {{
+            margin: 4px 0;
         }}
 
         .historical-nav {{
-            margin: 30px 0;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 8px;
+            margin: 32px 0;
+            padding: 24px;
+            background: #fafafa;
+            border-radius: 10px;
+            border: 1px solid #eee;
         }}
 
         .historical-nav h3 {{
-            margin-bottom: 15px;
-            color: #2c3e50;
-            font-size: 1.2em;
+            margin-bottom: 16px;
+            color: #666;
+            font-size: 0.8em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }}
 
         .month-links {{
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
         }}
 
         .month-link {{
-            padding: 8px 16px;
+            padding: 8px 14px;
             background: white;
-            border: 2px solid #4ECDC4;
+            border: 1px solid #ddd;
             border-radius: 6px;
             text-decoration: none;
-            color: #2c3e50;
+            color: #444;
+            font-size: 0.85em;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }}
 
         .month-link:hover {{
-            background: #4ECDC4;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            border-color: #1a1a1a;
+            color: #1a1a1a;
         }}
 
         .month-link.active {{
-            background: #4ECDC4;
+            background: #1a1a1a;
+            border-color: #1a1a1a;
             color: white;
-            font-weight: 700;
         }}
 
         @media (max-width: 768px) {{
+            body {{
+                padding: 20px 12px;
+            }}
+
             .container {{
-                padding: 20px;
+                padding: 32px 24px;
+                border-radius: 12px;
             }}
 
             h1 {{
-                font-size: 1.8em;
+                font-size: 1.4em;
             }}
 
             table {{
@@ -539,7 +567,11 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
             }}
 
             th, td {{
-                padding: 10px 5px;
+                padding: 12px 8px;
+            }}
+
+            .metadata {{
+                gap: 16px;
             }}
         }}
     </style>
@@ -547,7 +579,7 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
 <body>
     <div class="container">
         <header>
-            <h1>📊 Bond Fund YTM Dashboard</h1>
+            <h1>Bond Fund YTM Dashboard</h1>
             <p class="subtitle">Yield-to-Maturity Analysis</p>
             <div class="metadata">
                 <div class="metadata-item">
@@ -608,13 +640,13 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
                 family: 'inherit'
             }},
             marker: {{
-                size: 16,
+                size: 14,
                 color: fundData.colors,
                 line: {{
                     color: 'white',
-                    width: 3
+                    width: 2
                 }},
-                opacity: 0.9
+                opacity: 0.85
             }},
             hovertemplate:
                 '<b>%{{text}}</b><br>' +
@@ -637,39 +669,51 @@ def generate_dashboard_html(records: List[Dict], report_date: str = None) -> str
             title: {{
                 text: 'Yield-to-Maturity by Fund Maturity',
                 font: {{
-                    size: 24,
-                    color: '#2c3e50',
-                    family: 'inherit'
-                }}
+                    size: 18,
+                    color: '#1a1a1a',
+                    family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                    weight: 600
+                }},
+                x: 0,
+                xanchor: 'left',
+                y: 0.98
             }},
             xaxis: {{
-                title: 'Maturity Year',
+                title: {{
+                    text: 'Maturity Year',
+                    font: {{ size: 12, color: '#666' }}
+                }},
                 dtick: 1,
-                gridcolor: '#e0e0e0',
+                gridcolor: '#f0f0f0',
                 gridwidth: 1,
                 zeroline: false,
-                tickfont: {{ size: 12 }}
+                tickfont: {{ size: 11, color: '#888' }},
+                linecolor: '#eee'
             }},
             yaxis: {{
-                title: 'Yield-to-Maturity (%)',
+                title: {{
+                    text: 'Yield-to-Maturity (%)',
+                    font: {{ size: 12, color: '#666' }}
+                }},
                 tickformat: '.2f',
-                gridcolor: '#e0e0e0',
+                gridcolor: '#f0f0f0',
                 gridwidth: 1,
                 zeroline: false,
-                tickfont: {{ size: 12 }},
-                range: [0, Math.max(...fundData.y) + 1]  // Max value + 1%
+                tickfont: {{ size: 11, color: '#888' }},
+                linecolor: '#eee',
+                range: [0, Math.max(...fundData.y) + 1]
             }},
             hovermode: 'closest',
-            plot_bgcolor: '#fafafa',
+            plot_bgcolor: 'white',
             paper_bgcolor: 'white',
             font: {{
-                family: 'inherit',
-                color: '#333'
+                family: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                color: '#1a1a1a'
             }},
             margin: {{
                 l: 60,
                 r: 40,
-                t: 100,  // Increased for percentage labels above dots
+                t: 80,
                 b: 60
             }}
         }};
