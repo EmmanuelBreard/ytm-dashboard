@@ -30,6 +30,8 @@ class SycomoreExtractor(BaseExtractor):
             Standardized result dictionary
         """
         report_date = self._get_report_date(report_date)
+        # Extract YYYY-MM for validation
+        expected_month = report_date[:7]  # "2025-12-01" -> "2025-12"
 
         try:
             print(f"\n{'='*50}")
@@ -38,7 +40,7 @@ class SycomoreExtractor(BaseExtractor):
 
             # Step 1: Download PDF
             print("📥 Downloading PDF report...")
-            pdf_path = await self.download_report()
+            pdf_path = await self.download_report(expected_month)
 
             if not pdf_path:
                 return self._build_result(
@@ -134,9 +136,12 @@ class SycomoreExtractor(BaseExtractor):
         except Exception as e:
             return False, f"Validation error: {str(e)}"
 
-    async def download_report(self) -> str:
+    async def download_report(self, expected_month: str = None) -> str:
         """
         Download the latest monthly report PDF
+
+        Args:
+            expected_month: Expected month in YYYY-MM format for validation
 
         Returns:
             Path to downloaded PDF, or None if failed
@@ -213,11 +218,12 @@ class SycomoreExtractor(BaseExtractor):
                 # Download the PDF
                 print(f"⬇️  Downloading PDF...")
 
-                # Calculate expected report month (previous month)
-                current_date = datetime.now()
-                expected_month = (current_date.replace(day=1) - timedelta(days=1)).strftime('%Y-%m')
+                # Use passed expected_month or calculate from current date
+                if not expected_month:
+                    current_date = datetime.now()
+                    expected_month = current_date.strftime('%Y-%m')
 
-                timestamp = expected_month.replace('-', '')  # Use expected_month (e.g., "2025-11" → "202511")
+                timestamp = expected_month.replace('-', '')  # Use expected_month (e.g., "2025-12" → "202512")
                 safe_fund_name = self.fund_name.lower().replace(' ', '_')
                 report_filename = f"{safe_fund_name}_report_{timestamp}.pdf"
                 report_path = os.path.join(output_dir, report_filename)
