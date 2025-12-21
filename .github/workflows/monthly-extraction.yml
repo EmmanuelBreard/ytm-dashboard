@@ -1,0 +1,164 @@
+name: Monthly YTM Data Extraction
+
+on:
+  schedule:
+    # Run on the 15th of each month at 9 AM UTC
+    - cron: '0 9 15 * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+    inputs:
+      date:
+        description: 'Report date (YYYY-MM format, optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  extract-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get current date
+        id: date
+        run: echo "date=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Python dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+          playwright install-deps chromium
+
+      - name: Download database from release
+        continue-on-error: true
+        run: |
+          mkdir -p ytm_dashboard/data
+          gh release download latest --pattern 'ytm_data.db' -D ytm_dashboard/data/ 2>/dev/null || \
+            echo "::notice::No previous database found, starting fresh"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create reports directory
+        run: mkdir -p ytm_dashboard/reports
+
+      - name: Run YTM extraction
+        id: extraction
+        working-directory: ytm_dashboard
+        run: |
+          set -o pipefail
+
+          DATE_ARG=""
+          if [ -n "${{ github.event.inputs.date }}" ]; then
+            DATE_ARG="--date ${{ github.event.inputs.date }}"
+          fi
+
+          python main.py $DATE_ARG 2>&1 | tee extraction.log
+
+          # Capture summary for notification
+          {
+            echo "summary<<EOF"
+            tail -30 extraction.log
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
+
+      - name: Upload database to release
+        if: success()
+        run: |
+          TAG="v${{ steps.date.outputs.date }}"
+          DB_FILE="ytm_dashboard/data/ytm_data.db"
+
+          # Create versioned release
+          if gh release view "$TAG" &>/dev/null; then
+            gh release upload "$TAG" "$DB_FILE" --clobber
+          else
+            gh release create "$TAG" "$DB_FILE" \
+              --title "YTM Data ${{ steps.date.outputs.date }}" \
+              --notes "Monthly YTM data extraction for ${{ steps.date.outputs.date }}"
+          fi
+
+          # Update 'latest' release
+          if gh release view "latest" &>/dev/null; then
+            gh release upload "latest" "$DB_FILE" --clobber
+          else
+            gh release create "latest" "$DB_FILE" \
+              --title "Latest YTM Data" \
+              --notes "Latest YTM database file (updated automatically)"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload extraction log as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: extraction-log-${{ steps.date.outputs.date }}
+          path: ytm_dashboard/extraction.log
+          retention-days: 30
+
+      - name: Deploy to GitHub Pages
+        if: success()
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./ytm_dashboard
+          publish_branch: gh-pages
+          exclude_assets: '*.py,*.pyc,__pycache__/**,data/**,reports/**,extractors/**,pdf_utils/**,.gitignore,*.md,extraction.log'
+          force_orphan: false
+          keep_files: false
+
+      - name: Send success notification
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[SUCCESS] YTM Extraction - ${{ steps.date.outputs.date }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: YTM Dashboard Bot <${{ secrets.EMAIL_USERNAME }}>
+          html_body: |
+            <h2>YTM Data Extraction Completed Successfully</h2>
+            <p><strong>Date:</strong> ${{ steps.date.outputs.date }}</p>
+            <p><strong>Dashboard:</strong> <a href="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/">View Dashboard</a></p>
+            <p><strong>Run Details:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Log</a></p>
+            <h3>Extraction Summary</h3>
+            <pre>${{ steps.extraction.outputs.summary }}</pre>
+
+      - name: Send failure notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "[FAILED] YTM Extraction - ${{ steps.date.outputs.date }}"
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: YTM Dashboard Bot <${{ secrets.EMAIL_USERNAME }}>
+          html_body: |
+            <h2>YTM Data Extraction Failed</h2>
+            <p><strong>Date:</strong> ${{ steps.date.outputs.date }}</p>
+            <p><strong>Run Details:</strong> <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">GitHub Actions Log</a></p>
+            <p>Please check the workflow logs for error details.</p>
